@@ -1,0 +1,40 @@
+recordingrule:
+- expr: |
+    sum(label_replace(increase(promhttp_metric_handler_requests_total{namespace="default",job="fooapp"}[30d]), "status_class", "${1}xx", "code", "([0-9])..")) by (status_class)
+  labels:
+    job: fooapp
+    namespace: default
+  record: status_class:promhttp_metric_handler_requests_total:increase30d
+- expr: |
+    (
+      0.001000
+    *
+      sum(status_class:promhttp_metric_handler_requests_total:increase30d{namespace="default",job="fooapp"})
+    )
+  labels:
+    job: fooapp
+    namespace: default
+    window: 30d
+  record: promhttp_metric_handler_requests_errorbudget_requests
+- expr: |
+    (
+      sum(promhttp_metric_handler_requests_errorbudget_requests{namespace="default",job="fooapp"})
+    -
+      sum(status_class:promhttp_metric_handler_requests_total:increase30d{namespace="default",job="fooapp",status_class="5xx"})
+    )
+  labels:
+    job: fooapp
+    namespace: default
+    window: 30d
+  record: promhttp_metric_handler_requests_errorbudget_remaining
+- expr: |
+    (
+      promhttp_metric_handler_requests_errorbudget_remaining
+    /
+      promhttp_metric_handler_requests_errorbudget_requests
+    )
+  labels:
+    job: fooapp
+    namespace: default
+    window: 30d
+  record: promhttp_metric_handler_requests_errorbudget
